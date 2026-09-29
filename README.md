@@ -61,7 +61,7 @@ API_BASE_URL=http://localhost:3000 k6 run k6/scripts/stress.js
 ## Test inventory
 
 28 functional cases in `api-tests/tests/` (see
-[`test-cases-api-k6.md`](../your_files/test-cases-api-k6.md) for the full matrix):
+[`docs/test-cases.md`](docs/test-cases.md) for the full matrix):
 
 | File | Covers | IDs |
 |------|--------|-----|
