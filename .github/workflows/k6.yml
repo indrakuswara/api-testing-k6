@@ -1,0 +1,36 @@
+name: k6 Performance Tests
+
+# Manual trigger only — out of respect for the free public demo API,
+# performance runs are never fired automatically on every push.
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'k6 script to run'
+        required: true
+        default: 'smoke'
+        type: choice
+        options: [smoke, load, spike]
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          K6_VERSION=2.3.0
+          curl -sSL "https://github.com/grafana/k6/releases/download/v${K6_VERSION}/k6-v${K6_VERSION}-linux-amd64.tar.gz" | tar xz
+          sudo mv "k6-v${K6_VERSION}-linux-amd64/k6" /usr/local/bin/k6
+          k6 version
+
+      - name: Run k6 ${{ inputs.script }}
+        run: k6 run --out json="k6-results-${{ inputs.script }}.json" "k6/scripts/${{ inputs.script }}.js"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-results-${{ inputs.script }}
+          path: k6-results-${{ inputs.script }}.json
+          retention-days: 7
