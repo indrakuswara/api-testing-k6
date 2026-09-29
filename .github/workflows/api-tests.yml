@@ -20,11 +20,62 @@ jobs:
       - run: npm ci
 
       # API-only tests: no browser binaries needed, request context is enough
-      - run: npx playwright test
+      - name: Run Playwright tests
+        run: npx playwright test
 
-      - uses: actions/upload-artifact@v4
+      - name: Summarize results
+        id: summary
         if: always()
+        run: |
+          node -e '
+            const fs = require("fs");
+            let passed = 0, failed = 0, flaky = 0, total = 0, status = "UNKNOWN";
+            try {
+              const r = JSON.parse(fs.readFileSync("test-results.json", "utf8"));
+              total = r.stats.total || 0;
+              passed = r.stats.expected || 0;
+              failed = r.stats.unexpected || 0;
+              flaky = r.stats.flaky || 0;
+              status = failed > 0 ? "FAILED" : "PASSED";
+            } catch (e) {
+              console.log("test-results.json not found: " + e.message);
+            }
+            const out = process.env.GITHUB_OUTPUT;
+            fs.appendFileSync(out, `status=${status}\n`);
+            fs.appendFileSync(out, `passed=${passed}\n`);
+            fs.appendFileSync(out, `failed=${failed}\n`);
+            fs.appendFileSync(out, `flaky=${flaky}\n`);
+            fs.appendFileSync(out, `total=${total}\n`);
+          '
+
+      - name: Zip HTML report
+        if: always()
+        run: zip -r playwright-report.zip playwright-report/
+
+      - name: Send results email
+        if: always()
+        uses: dawidd6/action-send-mail@v3
         with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "[api-testing-k6] ${{ steps.summary.outputs.status }} — ${{ steps.summary.outputs.passed }} passed, ${{ steps.summary.outputs.failed }} failed, ${{ steps.summary.outputs.flaky }} flaky (${{ steps.summary.outputs.total }} total)"
+          to: ${{ secrets.MAIL_TO }}
+          from: "api-testing-k6 CI <${{ secrets.MAIL_USERNAME }}>"
+          body: |
+            Playwright API test run finished.
+
+            Result : ${{ steps.summary.outputs.status }}
+            Passed : ${{ steps.summary.outputs.passed }}
+            Failed : ${{ steps.summary.outputs.failed }}
+            Flaky  : ${{ steps.summary.outputs.flaky }}
+            Total  : ${{ steps.summary.outputs.total }}
+
+            Branch : ${{ github.ref_name }}
+            Commit : ${{ github.sha }}
+            Run    : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            The full HTML report is attached as a zip.
+          attachments: playwright-report.zip

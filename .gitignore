@@ -6,4 +6,5 @@ blob-report/
 *.log
 .env
 k6-results*.json
+test-results.json
 .DS_Store
