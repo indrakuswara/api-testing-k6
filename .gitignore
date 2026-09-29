@@ -7,4 +7,5 @@ blob-report/
 .env
 k6-results*.json
 test-results.json
+email-report.html
 .DS_Store

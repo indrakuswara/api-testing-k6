@@ -52,6 +52,21 @@ jobs:
         if: always()
         run: zip -r playwright-report.zip playwright-report/
 
+      - name: Build pretty HTML email body
+        id: html
+        if: always()
+        env:
+          EMAIL_BRANCH: ${{ github.ref_name }}
+          EMAIL_SHA: ${{ github.sha }}
+          EMAIL_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node scripts/build-email-report.mjs
+          {
+            echo 'body<<EOF'
+            cat email-report.html
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Send results email
         if: always()
         uses: dawidd6/action-send-mail@v3
@@ -78,4 +93,5 @@ jobs:
             Run    : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
             The full HTML report is attached as a zip.
+          html_body: ${{ steps.html.outputs.body }}
           attachments: playwright-report.zip
