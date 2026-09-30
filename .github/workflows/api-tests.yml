@@ -61,10 +61,15 @@ jobs:
           EMAIL_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           node scripts/build-email-report.mjs
+          # Use a unique delimiter so the HTML content can never clash with it
+          # (a fixed 'EOF' delimiter broke parsing when the report contained
+          # lookalike lines).
+          DELIMITER="EMAIL_HTML_BODY_$(date +%s)_$RANDOM"
           {
-            echo 'body<<EOF'
+            echo "body<<${DELIMITER}"
             cat email-report.html
-            echo 'EOF'
+            echo # blank line: guarantees the closing delimiter starts on its own line
+            echo "${DELIMITER}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Send results email

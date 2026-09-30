@@ -139,5 +139,5 @@ ${BRANCH ? `Branch <b style="color:#6b7280;">${esc(BRANCH)}</b> &nbsp;&middot;&n
 </table>
 </body></html>`;
 
-writeFileSync(output, html);
+writeFileSync(output, html.endsWith('\n') ? html : html + '\n');
 console.log(`Wrote ${output} (${rows.length} tests: ${counts.passed} passed, ${counts.failed} failed, ${counts.flaky} flaky)`);
